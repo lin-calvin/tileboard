@@ -1,0 +1,24 @@
+{
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "mqtt": {
+    "url": "mqtt://localhost:1883",
+    "topic": "tileboard/update",
+    "feedbackPrefix": "tileboard/feedback",
+    "clientId": "tileboard-renderer",
+    "clean": true,
+    "keepalive": 60,
+    "username": "",
+    "password": ""
+  },
+  "headless": false,
+  "httpPort": 3456,
+  "layout": {
+    "gap": 8,
+    "padding": 16
+  },
+  "tilesDir": "tiles",
+  "scale": 1
+}

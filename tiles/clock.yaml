@@ -1,0 +1,30 @@
+id: clock
+priority: 100
+protect: true
+timeout: 0
+width: 220
+height: 120
+html: |
+  <style>
+    .clock {
+      font-family: 'Courier New', monospace;
+      font-size: 42px;
+      color: #e0e0e0;
+      text-align: center;
+      padding: 28px 0;
+      background: #16213e;
+      border-radius: 8px;
+      border: 2px solid #0f3460;
+    }
+  </style>
+  <div class="clock" id="time"></div>
+  <script>
+    (function update() {
+      var el = document.getElementById('time');
+      if (el) el.textContent = new Date().toLocaleTimeString();
+    })();
+    setInterval(function() {
+      var el = document.getElementById('time');
+      if (el) el.textContent = new Date().toLocaleTimeString();
+    }, 1000);
+  </script>

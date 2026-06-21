@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tileboard-tiles
+data:
+  hello.yaml: |
+    id: hello
+    priority: 50
+    html: |
+      <style>
+        .hello {
+          font-family: sans-serif;
+          color: #a0d2db;
+          padding: 24px;
+          background: #16213e;
+          border-radius: 8px;
+          border: 2px solid #0f3460;
+          text-align: center;
+          font-size: 18px;
+        }
+      </style>
+      <div class="hello">
+        <div style="font-size:24px;font-weight:bold">Tileboard Ready</div>
+        <div>Edit tiles via the Studio at /</div>
+      </div>

@@ -1,0 +1,23 @@
+id: hello
+priority: 50
+protect: false
+timeout: 0
+html: |
+  <style>
+    .hello {
+      font-family: sans-serif;
+      color: #a0d2db;
+      padding: 24px;
+      background: #16213e;
+      border-radius: 8px;
+      border: 2px solid #0f3460;
+      min-width: 180px;
+      text-align: center;
+      font-size: 18px;
+    }
+    .hello .greeting { font-size: 24px; font-weight: bold; }
+  </style>
+  <div class="hello">
+    <div class="greeting">Tileboard Ready</div>
+    <div>Send MQTT messages to tileboard/update</div>
+  </div>

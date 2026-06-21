@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tileboard Studio</title>
+  <link rel="stylesheet" href="/src/config/style.css" />
+</head>
+<body>
+  <div class="studio">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h2>Tiles</h2>
+        <button id="btn-new" class="btn-sm">+ New</button>
+      </div>
+      <div id="tile-list" class="tile-list"></div>
+      <div class="sidebar-footer">
+        <button id="btn-export" class="btn-sm">Export ZIP</button>
+      </div>
+    </div>
+    <div class="main">
+      <div class="toolbar">
+        <div class="meta-row">
+          <div class="meta-group">
+            <label>ID</label>
+            <input id="tile-id" type="text" placeholder="tile-id" />
+          </div>
+          <div class="meta-group">
+            <label>Priority</label>
+            <input id="tile-priority" type="number" value="0" />
+          </div>
+          <div class="meta-group">
+            <label>Width</label>
+            <input id="tile-width" type="number" placeholder="auto" />
+          </div>
+          <div class="meta-group">
+            <label>Height</label>
+            <input id="tile-height" type="number" placeholder="auto" />
+          </div>
+          <div class="meta-group">
+            <label>Timeout (s)</label>
+            <input id="tile-timeout" type="number" value="0" />
+          </div>
+          <div class="meta-group checkbox-group">
+            <input id="tile-protect" type="checkbox" />
+            <label>Protected</label>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="btn-save" class="btn-primary">Save</button>
+          <button id="btn-delete" class="btn-danger">Delete</button>
+          <button id="btn-reload" class="btn-secondary">Reload</button>
+        </div>
+      </div>
+      <div class="editor-wrap">
+        <div id="editor" class="editor"></div>
+        <div class="preview">
+          <div class="preview-header">Preview</div>
+          <iframe id="preview-frame" class="preview-frame" sandbox="allow-scripts"></iframe>
+        </div>
+      </div>
+      <p id="message"></p>
+    </div>
+  </div>
+  <script type="module" src="/src/config/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tileboard-config
+data:
+  mqtt-url: "mqtt://mosquitto:1883"
+  mqtt-topic: "tileboard/update"
+  viewport-width: "1920"
+  viewport-height: "1080"
+  http-port: "3456"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tileboard-tiles
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tileboard
+  labels:
+    app: tileboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tileboard
+  template:
+    metadata:
+      labels:
+        app: tileboard
+    spec:
+      containers:
+        - name: tileboard
+          image: tileboard:latest
+          ports:
+            - containerPort: 3456
+          env:
+            - name: TILEBOARD_MQTT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: tileboard-config
+                  key: mqtt-url
+            - name: TILEBOARD_MQTT_TOPIC
+              valueFrom:
+                configMapKeyRef:
+                  name: tileboard-config
+                  key: mqtt-topic
+            - name: TILEBOARD_VIEWPORT_WIDTH
+              valueFrom:
+                configMapKeyRef:
+                  name: tileboard-config
+                  key: viewport-width
+            - name: TILEBOARD_VIEWPORT_HEIGHT
+              valueFrom:
+                configMapKeyRef:
+                  name: tileboard-config
+                  key: viewport-height
+            - name: TILEBOARD_HTTP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: tileboard-config
+                  key: http-port
+            - name: TILEBOARD_HEADLESS
+              value: "true"
+          volumeMounts:
+            - name: tiles
+              mountPath: /data/tiles
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3456
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3456
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: tiles
+          persistentVolumeClaim:
+            claimName: tileboard-tiles
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tileboard
+spec:
+  selector:
+    app: tileboard
+  ports:
+    - port: 80
+      targetPort: 3456
+  type: ClusterIP

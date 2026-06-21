@@ -1,0 +1,20 @@
+html, body {
+  overflow: hidden;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+#board {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  overflow: hidden;
+}
+
+.tile {
+  flex-shrink: 0;
+}
