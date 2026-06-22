@@ -1,59 +1,20 @@
 # Tileboard
 
-MQTT-driven tile-based dashboard with Snabbdom Virtual DOM rendering and optional PNG capture.
-
-Tiles arrive as HTML fragments over MQTT, are rendered independently with Snabbdom, and flow-laid out into a configurable viewport. Supports static tiles, priority-based competition when viewport space is tight, and MQTT feedback.
-
-Dual-mode: pure browser (config to localStorage) or Electron (Express config server + PNG capture).
-
-## Architecture
-
-```
-MQTT Broker ──JSON──► tile-manager ──► per-tile snabbdom ──► DOM
-                              │                    │
-                        priority sort      <script> execute
-                        flow layout        auto-size measure
-                        eviction
-                              │
-                        publish feedback
-```
-
-Each tile is an independent Snabbdom instance. Content is HTML with inline `<script>` support. Tiles are sorted by `priority` (descending) and laid out in flow order. When the viewport overflows, lower-priority tiles are evicted.
+MQTT-driven tiled dashboard. Tiles are HTML fragments rendered via Shadow DOM, laid out with CSS flex, and captured as PNG. Runs on Electron.
 
 ## Quick Start
 
-### Install
-
 ```bash
 npm install
+npm run start          # dev mode with live reload
+npm run pack           # build distributable to release/
 ```
 
-### Web mode
+Opens a window showing the board. Studio at `http://localhost:3456`, board view at `/board`, PNG capture at `/png`.
 
-```bash
-npx vite
-```
+## Config
 
-Opens at `http://localhost:5173`. Config UI at `http://localhost:5173/config.html`.
-
-Config is stored in `localStorage`. No PNG capture in web mode.
-
-### Electron mode
-
-```bash
-npm run dev:electron
-```
-
-- Tileboard window opens at configured viewport size
-- Express HTTP server on configured port (default `3456`)
-- Config UI at `http://localhost:3456/` (default route)
-- Tileboard page at `http://localhost:3456/board`
-- PNG capture at `http://localhost:3456/png`
-- Config stored in `config.json` file
-
-## Configuration
-
-See `config.json`:
+`~/.config/tileboard/config.json` (auto-created on first run from app defaults):
 
 ```json
 {
@@ -61,143 +22,82 @@ See `config.json`:
   "mqtt": {
     "url": "mqtt://localhost:1883",
     "topic": "tileboard/update",
-    "feedbackPrefix": "tileboard/feedback",
-    "clientId": "tileboard-renderer",
-    "clean": true,
-    "keepalive": 60
+    "username": "",
+    "password": ""
   },
-  "httpPort": 3456,
-  "layout": { "gap": 8, "padding": 16 },
-  "tilesDir": "tiles"
+  "headless": false,
+  "scale": 1,
+  "httpPort": 3456
 }
 ```
 
-Use the config UI (`/config.html`) to edit settings without editing the file directly.
+Env overrides: `TILEBOARD_MQTT_URL`, `TILEBOARD_MQTT_USERNAME`, `TILEBOARD_MQTT_PASSWORD`, `TILEBOARD_HEADLESS=true`, `TILEBOARD_HTTP_PORT`.
 
-## MQTT Protocol
+## MQTT Tiles
 
-### Receiving tiles (broker → tileboard)
-
-Publish to the configured topic (`tileboard/update` by default):
+Publish to the configured topic:
 
 ```json
-{ "id": "sensor-1", "content": "<div>23.5°C</div>", "priority": 50, "timeout": 30 }
-```
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | yes | Unique tile identifier |
-| `content` | string | yes | HTML fragment. Empty string `""` to delete. |
-| `priority` | number | no | Higher = more important, renders on top, harder to evict. Default `0`. |
-| `timeout` | number | no | Auto-remove after N seconds. `0` or absent = never. |
-
-Content supports inline `<script>` tags. Tile scripts can access `window.mqtt` to publish/subscribe directly.
-
-### Feedback (tileboard → broker)
-
-After processing each tile, tileboard publishes to `tileboard/feedback/<id>`:
-
-```json
-{ "id": "sensor-1", "accepted": true, "reason": "ok" }
-{ "id": "alert", "accepted": false, "reason": "viewport_full" }
-{ "id": "camera", "accepted": true, "reason": "ok", "evictedTiles": ["old-sensor"] }
+{ "id": "sensor-1", "content": "<div>23.5°C</div>", "priority": 50 }
+{ "id": "sensor-1", "content": "" }
 ```
 
 | Field | Description |
 |-------|-------------|
-| `accepted` | `true` if tile was placed, `false` if rejected or deleted |
-| `reason` | `"ok"`, `"viewport_full"`, `"empty_content"`, `"timeout"` |
-| `evictedTiles` | List of tile IDs evicted to make room (only when `accepted: true`) |
+| `id` | Unique tile ID |
+| `content` | HTML with `<style>` and `<script>`. Empty string removes the tile. |
+| `priority` | Higher = placed first, evicted last. Default 0. |
+| `timeout` | Auto-remove after N seconds. Omit to persist. |
+
+Content scripts run inside a Shadow DOM proxy — `document.getElementById()` only searches the tile.
+
+Responses published to `tileboard/feedback/<id>`:
+```json
+{ "id": "sensor-1", "accepted": true, "reason": "ok" }
+{ "id": "sensor-1", "accepted": false, "reason": "viewport_full" }
+```
+
+## Tile Studio
+
+`http://localhost:3456` — Monaco editor for creating and editing tiles.
+
+- Left panel lists all tiles, click to load into editor
+- Right panel: HTML editor with live preview
+- `Ctrl+S` saves — writes YAML to tiles directory and triggers board reload
+- Export ZIP downloads all tiles
+
+## PNG Capture
+
+`GET http://localhost:3456/png` → `image/png` of the current board.
 
 ## Static Tiles
 
-Pre-configured tiles loaded at startup from the `tiles/` directory.
-
-```
-tiles/
-├── index.json          # ["clock", "hello"]
-├── clock/
-│   ├── tile.yaml       # id, priority, protect, timeout, width, height
-│   └── tile.html       # HTML content with <style> + <script>
-└── hello/
-    ├── tile.yaml
-    └── tile.html
-```
-
-**tile.yaml:**
+`~/.config/tileboard/tiles/*.yaml` are loaded at startup. Same format as MQTT, one file per tile:
 
 ```yaml
 id: clock
 priority: 100
 protect: true       # never evicted
-timeout: 0          # 0 = never expires
-width: 220          # optional fixed width
-height: 120         # optional fixed height
+html: |
+  <style>.c{font-size:42px}</style>
+  <div class="c" id="t"></div>
+  <script>setInterval(function(){document.getElementById("t").textContent=new Date().toLocaleTimeString()},1000)</script>
 ```
 
-**tile.html:** Same HTML fragment format as MQTT content — supports `<style>`, `<script>`, anything.
+## Health & API
 
-`index.json` lists all tile directory names. Tiles are loaded in priority order at startup.
+| Route | Description |
+|-------|-------------|
+| `GET /png` | Board screenshot (PNG) |
+| `GET /api/health` | `{ status, viewport, uptime }` |
+| `GET /api/config` | Read config |
+| `POST /api/config` | Save config |
 
-Static tiles participate in the same competition system as MQTT tiles. Use `protect: true` to make them immune to eviction.
-
-## Priority & Competition
-
-- **Z-order:** Higher priority tiles render on top
-- **Layout order:** Higher priority tiles placed first in flow
-- **Eviction order:** Lower priority tiles removed first when viewport overflows
-- Protected tiles (`protect: true`) are never evicted, even if they overflow
-
-## HTTP API (Electron mode only)
-
-| Method | Route | Response |
-|--------|-------|----------|
-| `GET` | `/` | Config UI page |
-| `GET` | `/board` | Tileboard page |
-| `GET` | `/png` | `image/png` |
-| `GET` | `/api/health` | `{ status, viewport, tileCount, uptime }` |
-| `GET` | `/api/config` | Current config JSON |
-| `POST` | `/api/config` | Save config JSON |
-
-## Development
-
-```
-src/
-├── core/                # Shared logic (web + electron)
-│   ├── types.ts         # Type definitions + default config
-│   ├── tile.ts          # Per-tile snabbdom instance
-│   ├── tile-manager.ts  # Tile lifecycle, priority sort, competition
-│   ├── layout.ts        # Flow layout engine
-│   ├── mqtt.ts          # MQTT client, window.mqtt
-│   ├── config-store.ts  # Config persistence abstraction
-│   └── tile-loader.ts   # Static tile loading abstraction
-├── tileboard/           # Tileboard page UI
-│   ├── main.ts
-│   └── style.css
-├── config/              # Config page UI
-│   ├── main.ts
-│   └── style.css
-└── electron/            # Electron main process
-    ├── main.ts
-    ├── preload.ts
-    └── server.ts
-```
-
-### Build
+## Docker / K8s
 
 ```bash
-npm run build          # web + electron
-npm run build:web      # vite → dist/web/
-npm run build:electron # tsc → dist/electron/
+docker build -t tileboard .
+docker run -p 3456:3456 -e TILEBOARD_MQTT_URL=mqtt://broker:1883 -e TILEBOARD_HEADLESS=true -v /data/tiles:/data/tiles tileboard
 ```
 
-### Dependencies
-
-| Package | Role |
-|---------|------|
-| `snabbdom` | Per-tile Virtual DOM |
-| `mqtt` | MQTT client, exposed as `window.mqtt` |
-| `yaml` | Parse `tile.yaml` |
-| `vite` | Web bundler |
-| `electron` | Desktop shell + PNG capture |
-| `express` | HTTP config server + capture API |
+See `k8s/` for deployment manifests.
