@@ -1,0 +1,223 @@
+# Show how many tokens you have used today from litellm apis, change YOUR_PROXY_URL and YOUR_KEYS_HERE to yours
+id: token
+priority: 50
+protect: false
+timeout: 0
+html: |
+  <!DOCTYPE html>
+  <html lang="zh-CN">
+  <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Token Usage</title>
+      <style>
+          * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+          }
+  
+          body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Courier New', monospace;
+              background: #ffffff;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+              padding: 20px;
+          }
+  
+          .card {
+              background: #ffffff;
+              border: 1px solid #000000;
+              padding: 24px 28px;
+              max-width: 380px;
+              width: 100%;
+          }
+  
+          .date-label {
+              font-size: 13px;
+              color: #333;
+              letter-spacing: 0.5px;
+              border-bottom: 1px solid #000;
+              padding-bottom: 10px;
+              margin-bottom: 18px;
+          }
+  
+          .metric {
+              display: flex;
+              justify-content: space-between;
+              align-items: baseline;
+              padding: 8px 0;
+              border-bottom: 1px dashed #ddd;
+          }
+  
+          .metric:last-child {
+              border-bottom: none;
+          }
+  
+          .metric-label {
+              font-size: 14px;
+              color: #000;
+              font-weight: 500;
+          }
+  
+          .metric-value {
+              font-size: 22px;
+              font-weight: 700;
+              color: #000;
+              font-variant-numeric: tabular-nums;
+          }
+  
+          .metric-value .unit {
+              font-size: 14px;
+              font-weight: 400;
+              color: #555;
+              margin-left: 2px;
+          }
+  
+          .cache-bar-wrap {
+              margin-top: 4px;
+              width: 100%;
+          }
+  
+          .cache-bar-bg {
+              width: 100%;
+              height: 4px;
+              background: #e0e0e0;
+              margin-top: 4px;
+          }
+  
+          .cache-bar-fill {
+              height: 100%;
+              background: #000;
+          }
+  
+          .sub-text {
+              font-size: 11px;
+              color: #666;
+              margin-top: 2px;
+              font-family: 'Courier New', monospace;
+          }
+  
+          .footer {
+              margin-top: 16px;
+              padding-top: 12px;
+              border-top: 1px solid #000;
+              font-size: 11px;
+              color: #555;
+              display: flex;
+              justify-content: space-between;
+          }
+      </style>
+  </head>
+  <body>
+      <div class="card" id="app">
+          <div class="date-label"><h2 id="dateLabel">📅 加载中...</h2></div>
+  
+          <!-- 指标 1: 总 Token -->
+          <div class="metric">
+              <span class="metric-label">总使用</span>
+              <span class="metric-value" ><h3 id="totalTokens">--</h3> <span class="unit">--</span></span>
+          </div>
+  
+          <!-- 指标 2: 缓存率 -->
+          <div class="metric" style="flex-direction: column; align-items: stretch; gap: 2px;">
+              <div style="display: flex; justify-content: space-between;">
+                  <span class="metric-label">缓存率</span>
+                  <span class="metric-value" id="cacheRatio">--<span class="unit">%</span></span>
+              </div>
+              <div class="cache-bar-wrap">
+                  <div class="cache-bar-bg">
+                      <div class="cache-bar-fill" id="cacheProgress" style="width: 0%;"></div>
+                  </div>
+                  <div class="sub-text" id="cacheDetail">--</div>
+              </div>
+          </div>
+      </div>
+  
+      <script>
+          // 格式化数字（K/M/B）
+          function formatNumber(num) {
+              if (num === undefined || num === null) return '0';
+              const abs = Math.abs(num);
+              if (abs >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+              if (abs >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+              if (abs >= 1e3) return (num / 1e3).toFixed(1) + 'K';
+              return Math.round(num).toString();
+          }
+  
+          function getUnit(num) {
+              if (num === undefined || num === null) return '';
+              const abs = Math.abs(num);
+              if (abs >= 1e9) return 'B';
+              if (abs >= 1e6) return 'M';
+              if (abs >= 1e3) return 'K';
+              return '';
+          }
+  
+          function render(data) {
+              if (!data || !data.results || data.results.length === 0) {
+                  document.getElementById('dateLabel').textContent = '📅 无数据';
+                  return;
+              }
+  
+              // 取第一条（今天）
+              const today = data.results[0];
+              const m = today.metrics || {};
+  
+              const prompt = m.prompt_tokens || 0;
+              const completion = m.completion_tokens || 0;
+              const total = prompt + completion;
+              const cacheRead = m.cache_read_input_tokens || 0;
+              const cacheRatio = total > 0 ? (cacheRead / total) * 100 : 0;
+              const requests = m.api_requests || 0;
+  
+              // 日期
+              document.getElementById('dateLabel').textContent = `📅 ${today.date} Token usage`;
+  
+              // 总使用
+              const totalEl = document.getElementById('totalTokens');
+              const totalStr = formatNumber(total);
+              const unit = getUnit(total);
+              if (unit) {
+                  totalEl.innerHTML = `${totalStr.replace(/[KMB]$/, '')} <span class="unit">${unit}</span>`;
+              } else {
+                  totalEl.innerHTML = `${totalStr} <span class="unit"></span>`;
+              }
+  
+              // 缓存率
+              document.getElementById('cacheRatio').innerHTML = `${cacheRatio.toFixed(1)}<span class="unit">%</span>`;
+              document.getElementById('cacheProgress').style.width = `${Math.min(cacheRatio, 100)}%`;
+              document.getElementById('cacheDetail').textContent = 
+                  `命中 ${formatNumber(cacheRead)} / 总 ${formatNumber(total)}`;
+  
+          }
+  
+          // 获取今天数据
+          async function fetchData() {
+              const today = new Date().toISOString().split('T')[0];
+              const url = `https://YOUR_PROXY_URL/user/daily/activity/aggregated?start_date=${today}&end_date=${today}`;
+  
+              try {
+                  const response = await fetch(url, {
+                      method: 'GET',
+                      headers: {
+                          'content-type': 'application/json',
+                          Authorization: 'Bearer YOUR_KEYS_HERE'
+                      }
+                  });
+                  const data = await response.json();
+                  render(data);
+              } catch (error) {
+                  console.error(error);
+                  //document.getElementById('dateLabel').textContent = '📅 加载失败';
+              }
+          }
+  
+          fetchData();
+          setInterval(fetchData, 60000);
+      </script>
+  </body>
+  </html>
+  

@@ -1,0 +1,269 @@
+id: weather
+priority: 90
+protect: false
+timeout: 0
+html: |
+  <!DOCTYPE html>
+  <html lang="zh-CN">
+  <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>天气</title>
+      <style>
+          * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+          }
+  
+          body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Courier New', monospace;
+              background: #ffffff;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+  
+              padding: 20px;
+          }
+  
+          .card {
+              background: #ffffff;
+              border: 1px solid #000000;
+              padding: 24px 28px;
+              min-width: 250px;
+              max-width: 320px;
+              width: 100%;
+          }
+  
+          .location {
+              font-size: 18px;
+              font-weight: 700;
+              color: #000;
+              letter-spacing: 0.5px;
+              border-bottom: 1px solid #000;
+              padding-bottom: 10px;
+              margin-bottom: 16px;
+          }
+  
+          .location .sub {
+              font-size: 13px;
+              font-weight: 400;
+              color: #555;
+          }
+  
+          .weather-main {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 8px 0;
+              border-bottom: 1px dashed #ddd;
+              margin-bottom: 12px;
+          }
+  
+          .temp {
+              font-size: 42px;
+              font-weight: 700;
+              color: #000;
+              line-height: 1;
+          }
+  
+          .temp .unit {
+              font-size: 20px;
+              font-weight: 400;
+              color: #555;
+          }
+  
+          .weather-desc {
+              text-align: right;
+          }
+  
+          .weather-desc .desc {
+              font-size: 16px;
+              font-weight: 500;
+              color: #000;
+          }
+  
+          .weather-desc .feels {
+              font-size: 13px;
+              color: #555;
+          }
+  
+          .details {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 6px 16px;
+              padding: 8px 0;
+          }
+  
+          .detail-item {
+              display: flex;
+              justify-content: space-between;
+              padding: 4px 0;
+              border-bottom: 1px dotted #eee;
+          }
+  
+          .detail-item .label {
+              font-size: 13px;
+              color: #555;
+          }
+  
+          .detail-item .value {
+              font-size: 14px;
+              font-weight: 600;
+              color: #000;
+          }
+  
+          .footer {
+              margin-top: 14px;
+              padding-top: 10px;
+              border-top: 1px solid #000;
+              font-size: 11px;
+              color: #666;
+              text-align: center;
+          }
+  
+          .sun-times {
+              display: flex;
+              justify-content: space-between;
+              font-size: 13px;
+              color: #555;
+              padding: 6px 0;
+              border-top: 1px dashed #ddd;
+              margin-top: 8px;
+          }
+  
+          .sun-times span {
+              display: flex;
+              align-items: center;
+              gap: 4px;
+          }
+      </style>
+  </head>
+  <body>
+      <div class="card" id="app">
+          <div class="location" id="location">
+              📍 加载中...
+              <span class="sub" id="timeLabel"></span>
+          </div>
+  
+          <div class="weather-main">
+              <div class="temp" id="temp">--<span class="unit">°C</span></div>
+              <div class="weather-desc">
+                  <div class="desc" id="desc">--</div>
+                  <div class="feels" id="feels">体感 --°C</div>
+              </div>
+          </div>
+  
+          <div class="details">
+              <div class="detail-item">
+              </div>
+              <div class="detail-item">
+  
+              </div>
+  
+          </div>
+  
+          <div class="footer" id="updated">更新中...</div>
+      </div>
+  
+      <script>
+          // 天气图标映射（简单文本）
+          function getWeatherEmoji(code) {
+              const map = {
+                  0: '☀️', 1: '🌤', 2: '⛅', 3: '☁️',
+                  45: '🌫', 48: '🌫',
+                  51: '🌧', 53: '🌧', 55: '🌧',
+                  61: '🌧', 63: '🌧', 65: '🌧',
+                  71: '🌨', 73: '🌨', 75: '🌨',
+                  80: '🌧', 81: '🌧', 82: '🌧',
+                  95: '⛈', 96: '⛈', 99: '⛈'
+              };
+              return map[code] || '🌤';
+          }
+  
+          function getWeatherDesc(code) {
+              const map = {
+                  0: '晴',
+                  1: '晴间云',
+                  2: '多云间晴',
+                  3: '阴',
+                  45: '雾',
+                  48: '雾',
+                  51: '小毛毛雨',
+                  53: '毛毛雨',
+                  55: '大毛毛雨',
+                  61: '小雨',
+                  63: '中雨',
+                  65: '大雨',
+                  71: '小雪',
+                  73: '中雪',
+                  75: '大雪',
+                  80: '阵雨',
+                  81: '中阵雨',
+                  82: '大阵雨',
+                  95: '雷暴',
+                  96: '雷暴冰雹',
+                  99: '强雷暴冰雹'
+              };
+              return map[code] || '未知';
+          }
+  
+          async function fetchWeather() {
+              // 使用深圳的经纬度（可替换为你所在城市）
+              const lat = 22.5431;
+              const lon = 114.0579;
+              const timezone = 'Asia/Shanghai';
+  
+              // 当前天气 + 未来 1 天（用于日出日落）
+              const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,uv_index,visibility&daily=sunrise,sunset&timezone=${timezone}&forecast_days=1`;
+  
+              try {
+                  const response = await fetch(url);
+                  const data = await response.json();
+  
+                  if (!data || !data.current) {
+                      throw new Error('无法获取天气数据');
+                  }
+  
+                  const current = data.current;
+                  const daily = data.daily;
+  
+                  // 位置
+                  document.getElementById('location').innerHTML = 
+                      `📍 深圳 <span class="sub">${new Date().toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>`;
+  
+                  // 温度
+                  const temp = Math.round(current.temperature_2m);
+                  document.getElementById('temp').innerHTML = `${temp}<span class="unit">°C</span>`;
+  
+                  // 天气描述
+                  const code = current.weather_code;
+                  const emoji = getWeatherEmoji(code);
+                  const desc = getWeatherDesc(code);
+                  document.getElementById('desc').textContent = `${emoji} ${desc}`;
+  
+                  // 体感温度
+                  const feels = Math.round(current.apparent_temperature);
+                  document.getElementById('feels').textContent = `体感 ${feels}°C`;
+  
+                  // 更新时间
+                  document.getElementById('updated').textContent = 
+                      `更新于 ${new Date().toLocaleString('zh-CN')}`;
+  
+              } catch (error) {
+                  console.error('天气获取失败:', error);
+                  document.getElementById('location').textContent = '📍 加载失败';
+                  document.getElementById('updated').textContent = '请检查网络';
+              }
+          }
+  
+          // 立即执行
+          fetchWeather();
+  
+          // 每 10 分钟自动刷新
+          setInterval(fetchWeather, 10 * 60 * 1000);
+      </script>
+  </body>
+  </html>
+  

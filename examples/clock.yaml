@@ -1,0 +1,139 @@
+id: clock
+priority: 100
+protect: true
+timeout: 0
+html: |
+  <!DOCTYPE html>
+  <html lang="zh">
+  <head>
+    <meta charset="UTF-8">
+    <title>Eink · 极简时钟</title>
+    <style>
+      /* 完全保留原有样式：尺寸、边缘、字体、间距完全不变 */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+  
+      body {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #ffffff;
+        font-family: -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        padding: 20px;
+      }
+  
+      /* 严格遵循原版 .clock 样式 — 尺寸、边框、内边距、字距完全一致 */
+      .clock {
+        font-family: -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        color: #000000;
+        font-size: 60px;              /* 原版固定 */
+        text-align: center;
+        padding: 30px 40px;           /* 原版固定 */
+        border: 1px solid #000000;    /* 原版边框 */
+        background: #ffffff;
+        letter-spacing: 0.06em;       /* 原版字距 */
+        transition: none;
+        min-width: 200px;             /* 原版最小宽度 */
+        max-width: 400px;
+        width: 100%;
+      }
+  
+      /* 时间主体 — 完全继承父级字号，不额外放大 */
+      .time-main {
+        font-size: inherit;           /* 继承 .clock 的 60px */
+        font-weight: 500;             /* 微调粗细，使时间更醒目，但不改变大小 */
+        line-height: 1.2;
+        letter-spacing: inherit;
+        font-variant-numeric: tabular-nums;
+      }
+  
+      /* 日期行 — 新增，但字号独立，不影响原有时间大小 */
+      .date-row {
+        font-size: 22px;              /* 固定，与时间大小区分 */
+        font-weight: 400;
+        letter-spacing: 0.08em;
+        color: #000000;
+        border-top: 1px solid #000000;
+        padding-top: 16px;
+        margin-top: 10px;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+  
+      .date-item {
+        display: inline-block;
+        white-space: nowrap;
+      }
+  
+      /* 装饰分隔符 */
+      .sep {
+        opacity: 0.5;
+        font-weight: 300;
+        padding: 0 4px;
+      }
+  
+    </style>
+  </head>
+  <body>
+    <div class="clock" id="clockContainer">
+      <!-- 时间主体 (时:分) — 大小完全遵循 .clock 字号 -->
+      <div class="time-main" id="timeMain">--:--</div>
+      <!-- 新增日期 + 星期 (无秒) -->
+      <div class="date-row" id="dateRow">
+        <span class="date-item" id="dateDisplay">----年--月--日</span>
+        <span class="sep">·</span>
+        <span class="date-item" id="weekdayDisplay">------</span>
+      </div>
+    </div>
+  
+    <script>
+      (function() {
+        "use strict";
+  
+        const timeMain = document.getElementById('timeMain');
+        const dateDisplay = document.getElementById('dateDisplay');
+        const weekdayDisplay = document.getElementById('weekdayDisplay');
+  
+        const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
+  
+        function pad(n) {
+          return String(n).padStart(2, '0');
+        }
+  
+        function updateClock() {
+          const now = new Date();
+  
+          // 时:分
+          const hours = pad(now.getHours());
+          const minutes = pad(now.getMinutes());
+          timeMain.textContent = hours + ':' + minutes;
+  
+          // 日期
+          const year = now.getFullYear();
+          const month = pad(now.getMonth() + 1);
+          const day = pad(now.getDate());
+          dateDisplay.textContent = year + '年' + month + '月' + day + '日';
+  
+          // 星期
+          const wd = now.getDay();
+          weekdayDisplay.textContent = '星期' + WEEKDAYS[wd];
+        }
+  
+        // 立即执行
+        updateClock();
+  
+        // 每分钟更新一次，避免频繁刷新
+        setInterval(updateClock, 60000);
+  
+        console.log('Eink 极简时钟 (无秒, 尺寸不变) 已启动 ✓');
+      })();
+    </script>
+  </body>
+  </html>
+  
