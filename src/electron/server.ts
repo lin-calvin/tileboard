@@ -126,6 +126,7 @@ export function startServer(gw: () => BrowserWindow | null, cfgPath: string, tDi
         height: vh,
       });
       res.set("Content-Type", "image/png");
+      res.set("Refresh", "1");
       res.send(image.toPNG());
     } catch (e: any) {
       res.status(500).json({ error: e.message });
