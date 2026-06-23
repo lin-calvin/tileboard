@@ -56,7 +56,7 @@ function createShadowDocument(shadow: ShadowRoot): Document {
 export function createTile(def: TileDef, container: HTMLElement): TileInstance {
   const elm = document.createElement("div");
   elm.className = "tile";
-  elm.style.order = String(-def.priority);
+  elm.style.position = "absolute";
   container.appendChild(elm);
 
   const shadow = elm.attachShadow({ mode: "open" });

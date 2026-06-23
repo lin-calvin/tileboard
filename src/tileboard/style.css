@@ -9,12 +9,11 @@ html, body {
 }
 
 #board {
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
+  position: relative;
   overflow: hidden;
 }
 
 .tile {
-  flex-shrink: 0;
+  position: absolute;
+  overflow: hidden;
 }

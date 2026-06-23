@@ -10,7 +10,8 @@
     "dev:web": "vite",
     "dev:electron": "npm run build:electron && electron .",
     "start": "npm run build && electron . --remote-debugging-port=9222",
-    "pack": "npm run build && electron-builder --dir"
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder --linux AppImage"
   },
   "build": {
     "appId": "com.tileboard.app",
@@ -26,6 +27,10 @@
       { "from": "config.json", "to": "." },
       { "from": "tiles", "to": "tiles" }
     ],
+    "linux": {
+      "target": "AppImage",
+      "category": "Utility"
+    },
     "asar": false
   },
   "dependencies": {

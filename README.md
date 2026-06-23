@@ -1,80 +1,94 @@
-# Tileboard
+# 🧩 Tileboard
 
-MQTT-driven tiled dashboard. Tiles are HTML fragments rendered via Shadow DOM, laid out with CSS flex, and captured as PNG. Runs on Electron.
+![](docs/show.jpeg)
 
-## Quick Start
+**Build your own live dashboard via html, and display it on any devices that can display a png image**
 
-```bash
-npm install
-npm run start          # dev mode with live reload
-npm run pack           # build distributable to release/
-```
+Tileboard is a lightweight, MQTT‑driven dashboard where every tile is a tiny web page.
+---
 
-Opens a window showing the board. Studio at `http://localhost:3456`, board view at `/board`, PNG capture at `/png`.
+## ✨ Features
 
-## Config
+- **Dynamic tiles** – add, update, or remove tiles via MQTT messages
+- **Live preview** – built‑in Monaco editor with instant preview
+- **Priority & eviction** – set priority and auto‑timeout to manage screen space
+- **Static tiles** – load YAML files on startup for permanent tiles
+- **Kindle support** – turn your e‑reader into a low‑power display
+- **Shows anywhere** -- any devices that shows png files can turn into a multi-functional dashboard
 
-`~/.config/tileboard/config.json` (auto-created on first run from app defaults):
+---
 
-```json
-{
-  "viewport": { "width": 1920, "height": 1080 },
-  "mqtt": {
-    "url": "mqtt://localhost:1883",
-    "topic": "tileboard/update",
-    "username": "",
-    "password": ""
-  },
-  "headless": false,
-  "scale": 1,
-  "httpPort": 3456
-}
-```
+## 🚀 Quick Start
 
-Env overrides: `TILEBOARD_MQTT_URL`, `TILEBOARD_MQTT_USERNAME`, `TILEBOARD_MQTT_PASSWORD`, `TILEBOARD_HEADLESS=true`, `TILEBOARD_HTTP_PORT`.
+1. **Download** the AppImage and run:
+   
+   `./Tileboard.AppImage --headless`
 
-## MQTT Tiles
+2. **Open** your browser at `http://SERVER_IP:3456/`
 
-Publish to the configured topic:
+3. **Start building** – use the Tile Studio to create your first tile.
 
-```json
+4. **Connecting** – Configure your display to show the dashboard
+
+---
+
+## ⚙️ Configuration
+
+On first run, Tileboard creates `~/.config/tileboard/config.json`. You can tweak these settings:
+
+| Option                   | Description                                     |
+| ------------------------ | ----------------------------------------------- |
+| `viewport.width/height`  | Board resolution in pixels                      |
+| `mqtt.url`               | MQTT broker URL (e.g., `mqtt://localhost:1883`) |
+| `mqtt.topic`             | Topic to listen for tile updates                |
+| `mqtt.username/password` | Optional credentials                            |
+| `headless`               | Run without UI (set to `true` for servers)      |
+| `scale`                  | Render scale factor                             |
+| `httpPort`               | Port for the web interface                      |
+
+Environment variables override the config:  
+`TILEBOARD_MQTT_URL`, `TILEBOARD_MQTT_USERNAME`, `TILEBOARD_MQTT_PASSWORD`, `TILEBOARD_HEADLESS=true`, `TILEBOARD_HTTP_PORT`.
+
+---
+
+## 📡 Dynamic Tiles via MQTT
+
+Publish a JSON message to the configured MQTT topic (default `tileboard/update`):
+
 { "id": "sensor-1", "content": "<div>23.5°C</div>", "priority": 50 }
-{ "id": "sensor-1", "content": "" }
-```
 
-| Field | Description |
-|-------|-------------|
-| `id` | Unique tile ID |
-| `content` | HTML with `<style>` and `<script>`. Empty string removes the tile. |
-| `priority` | Higher = placed first, evicted last. Default 0. |
-| `timeout` | Auto-remove after N seconds. Omit to persist. |
+| Field      | Description                                                                        |
+| ---------- | ---------------------------------------------------------------------------------- |
+| `id`       | Unique tile identifier                                                             |
+| `content`  | HTML string (can include `<style>` and `<script>`). Empty string removes the tile. |
+| `priority` | Higher values place the tile first and evict it last. Default `0`.                 |
+| `timeout`  | Auto‑remove after N seconds. Omit to keep it indefinitely.                         |
 
-Content scripts run inside a Shadow DOM proxy — `document.getElementById()` only searches the tile.
+**Important:** scripts inside the tile run in a Shadow DOM proxy – `document.getElementById()` only searches within that tile.
 
-Responses published to `tileboard/feedback/<id>`:
-```json
+Tileboard replies on `tileboard/feedback/<id>` with:
+
 { "id": "sensor-1", "accepted": true, "reason": "ok" }
 { "id": "sensor-1", "accepted": false, "reason": "viewport_full" }
-```
 
-## Tile Studio
+---
 
-`http://localhost:3456` — Monaco editor for creating and editing tiles.
+## 🖥️ Tile Studio
 
-- Left panel lists all tiles, click to load into editor
-- Right panel: HTML editor with live preview
-- `Ctrl+S` saves — writes YAML to tiles directory and triggers board reload
-- Export ZIP downloads all tiles
+Visit `http://localhost:3456` – you'll find a full‑featured Monaco editor.
 
-## PNG Capture
+- **Left panel** – lists all active tiles; click one to edit
+- **Right panel** – HTML editor with live preview (update as you type)
+- **Ctrl+S** – saves the tile as a YAML file in `~/.config/tileboard/tiles/` and reloads the board
+- **Export ZIP** – downloads all tiles as a compressed archive
 
-`GET http://localhost:3456/png` → `image/png` of the current board.
+---
 
-## Static Tiles
+## 📂 Static Tiles (Startup)
 
-`~/.config/tileboard/tiles/*.yaml` are loaded at startup. Same format as MQTT, one file per tile:
+Place YAML files in `~/.config/tileboard/tiles/*.yaml` – they load automatically at startup.  
+Format is the same as MQTT messages, but with an extra `protect` flag:
 
-```yaml
 id: clock
 priority: 100
 protect: true       # never evicted
@@ -82,22 +96,30 @@ html: |
   <style>.c{font-size:42px}</style>
   <div class="c" id="t"></div>
   <script>setInterval(function(){document.getElementById("t").textContent=new Date().toLocaleTimeString()},1000)</script>
-```
 
-## Health & API
+---
 
-| Route | Description |
-|-------|-------------|
-| `GET /png` | Board screenshot (PNG) |
-| `GET /api/health` | `{ status, viewport, uptime }` |
-| `GET /api/config` | Read config |
-| `POST /api/config` | Save config |
+## 📖 Kindle Integration
 
-## Docker / K8s
+Turn your Kindle into an always‑on dashboard – see [kindle/README.md](kindle/README.md) for step‑by‑step instructions.
 
-```bash
-docker build -t tileboard .
-docker run -p 3456:3456 -e TILEBOARD_MQTT_URL=mqtt://broker:1883 -e TILEBOARD_HEADLESS=true -v /data/tiles:/data/tiles tileboard
-```
+---
 
-See `k8s/` for deployment manifests.
+## 🔧 Advanced Tips
+
+- **Scaling** – adjust `scale` in config to fit high‑DPI screens
+- **Headless operation** – perfect for Raspberry Pi, just set `"headless": true`
+- **Security** – use MQTT with TLS or username/password; the HTTP server is minimal – consider putting it behind a reverse proxy if exposed to the internet
+
+---
+
+## 🤝 Contributing
+
+Issues and pull requests are welcome!  
+Feel free to open a discussion if you have ideas for new features.
+
+---
+
+## 📄 License
+
+MIT – use it anywhere, modify it freely.

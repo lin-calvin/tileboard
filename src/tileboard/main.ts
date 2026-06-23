@@ -15,10 +15,8 @@ const board = document.getElementById("board")!;
 async function start(): Promise<void> {
   const cfg: Config = await configStore.load();
 
-//  board.style.width = `${cfg.viewport.width}px`;
-//  board.style.height = `${cfg.viewport.height}px`;
-  board.style.gap = `${cfg.layout.gap}px`;
-  board.style.padding = `${cfg.layout.padding}px`;
+  board.style.width = `${document.documentElement.clientWidth || cfg.viewport.width}px`;
+  board.style.height = `${document.documentElement.clientHeight || cfg.viewport.height}px`;
 
   manager = new TileManager(board, cfg);
   (window as any).tileManager = manager;
