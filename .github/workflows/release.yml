@@ -26,9 +26,12 @@ jobs:
 
       - name: Build AppImage
         run: npm run dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           files: release/Tileboard-*.AppImage
           generate_release_notes: true
