@@ -315,7 +315,7 @@ func writePNG(img image.Image, path string) error {
 
 func displayEips(path string,fullUpdate bool) error {
     if (fullUpdate){
-        return exec.Command("eips","-w","reagl","-f", "-g", path).Run()
+        return exec.Command("eips","-f", "-g", path).Run()
     }
-	return exec.Command("eips", "-g", path).Run()
+	return exec.Command("eips","-w","reagl", "-g", path).Run()
 }
